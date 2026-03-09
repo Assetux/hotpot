@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array></array>
+  <key>PayloadDisplayName</key>
+  <string>Net WiFi Hotspot Network</string>
+  <key>PayloadIdentifier</key>
+  <string>net.hotspot.profile</string>
+  <key>PayloadOrganization</key>
+  <string>Net Hotspot Network</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>f4faba53-bdbd-4a28-a462-cf752f8b4f62</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadDescription</key>
+  <string>Automatically connect to 2000 verified WiFi hotspots in the Net network.</string>
+</dict>
+</plist>

@@ -1,0 +1,1033 @@
+{
+	"info": {
+		"_postman_id": "6bdf5c27-04c2-440a-9d9e-41ca6e3e15b5",
+		"name": "NetSepio Gateway",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28206059",
+		"_collection_link": "https://maxprom1.postman.co/workspace/Max-BB~eb0c288d-53ce-4bcb-8aee-c2abff485ccc/collection/28206059-6bdf5c27-04c2-440a-9d9e-41ca6e3e15b5?action=share&source=collection_link&creator=28206059"
+	},
+	"item": [
+		{
+			"name": "Role",
+			"item": [
+				{
+					"name": "Request role",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roleId/0xdfe3491e2d998adfabe7c595ac0c21225b49e09a1b1ed0c107b3ec404a7d18ba",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roleId",
+								"0xdfe3491e2d998adfabe7c595ac0c21225b49e09a1b1ed0c107b3ec404a7d18ba"
+							]
+						},
+						"description": "Request role with role Id\n\nReturns flow ID and Eula which should be signed and passed to claim Role in order to successful verification and claim of role"
+					},
+					"response": []
+				},
+				{
+					"name": "Claim role",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"flowId\":\"4b7febac-7f39-4621-8f53-3c433cf39c0e\",\"signature\":\"0xe4438a1ac7be44656ea348f25d3041df6a055884e6ebb4d1c86550f83ea6527d39e92383e2c69b9b9f295d40fee82d3065755c7b3189c2ccfb7e17138a0016ea1c\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/claimrole",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"claimrole"
+							]
+						},
+						"description": "Successfully completed role claim by sending signature which is obtained from signing eula+flowId which was returned from roleId API (aka Request role)"
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Profile",
+			"item": [
+				{
+					"name": "Get profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						},
+						"description": "Get profile details of user present in the system.\n\nNote - Some unset data is emitted."
+					},
+					"response": []
+				},
+				{
+					"name": "Update profile",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"OMd\",\r\n    \"country\": \"India\",\r\n    \"profilePictureUrl\": \"https://unsplash.it/500\",\r\n    \"discord\":\"ommore\",\r\n    \"twitter\":\"ommoretest\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						},
+						"description": "Updates profile data like name, profile picture URL, etc.\n\nRefer example payload for more items."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Request flow id for wallet",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/flowid?walletAddress=0xa02c9e2b922dc2f35b6d108494fed502a323ea104de630b948f7a0ad5553a084",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"flowid"
+							],
+							"query": [
+								{
+									"key": "walletAddress",
+									"value": "0xa02c9e2b922dc2f35b6d108494fed502a323ea104de630b948f7a0ad5553a084"
+								}
+							]
+						},
+						"description": "Returns flow ID and EULA which should be signed and send to authenticate API in order to get the JWT which can be used for accessing all other APIs"
+					},
+					"response": []
+				},
+				{
+					"name": "Request PASETO from signature",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"flowId\":\"41f87896-b93e-49f4-a1a0-e3f287472f69\",\r\n\"signature\":\"0x756c7bd1cea9345f2bb00c3944589ae7cee09ae3621fa91bb1e3a3ec2dd572152945e15dcc25b5736c2895f93f59fbba2abcde86fab561e8ac625ddd98534b0e\",\r\n\"pubKey\":\"0x8837a4be6745bac1d7dd1a4787f142314163e7c74840f57b247b471fed6e22aa\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/authenticate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"authenticate"
+							]
+						},
+						"description": "Request JWT for the user who accepted the EULA by signing it with flow ID, i.e. flowid+EULA."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Review",
+			"item": [
+				{
+					"name": "Delegate review",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"category\": \"website\",\r\n    \"domainAddress\": \"ommore.xyz\",\r\n    \"siteUrl\": \"https://ommore.xyz\",\r\n    \"siteType\": \"Productivity app\",\r\n    \"siteTag\": \"green\",\r\n    \"siteSafety\": \"unsafe\",\r\n    \"metaDataUri\": \"cmmcmsddcdfdswwmacsmadsscscsdssdcvdf\",\r\n    \"siteIpfsHash\": \"abdfdf\",\r\n    \"description\":\"😆 emojis\",\r\n    \"siteRating\":7\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/delegateReviewCreation",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"delegateReviewCreation"
+							]
+						},
+						"description": "Delegate artifact creation to other creator"
+					},
+					"response": []
+				},
+				{
+					"name": "Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stats?siteUrl=https://allafrica.com",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"stats"
+							],
+							"query": [
+								{
+									"key": "siteUrl",
+									"value": "https://allafrica.com"
+								},
+								{
+									"key": "domain",
+									"value": "allafrica.com",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete review",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"metaDataUri\":\"thereview_by_new_wallet\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/deleteReview",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"deleteReview"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/getreviews?page=1&domain=todo.ommore.xyz",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"getreviews"
+							],
+							"query": [
+								{
+									"key": "voter",
+									"value": "0xb80e97513791e30ecf954d4c620391ca5e1f9fd33428e72e6e1e0d0756024f18",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "domain",
+									"value": "todo.ommore.xyz"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviewers Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reviewerdetails?walletAddress=0x984185d39c67c954bd058beb619faf8929bb9349ef33c15102bdb982cbf7f18f",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reviewerdetails"
+							],
+							"query": [
+								{
+									"key": "walletAddress",
+									"value": "0x984185d39c67c954bd058beb619faf8929bb9349ef33c15102bdb982cbf7f18f"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "TheGraph",
+			"item": [
+				{
+					"name": "Get User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\r\n  reviews(first: 5) {\r\n    id\r\n    category\r\n    domainAddress\r\n    siteURL\r\n    metaDataUri\r\n    deleted\r\n  }\r\n}\r\n",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{subgraph_base}}/NetSepio",
+							"host": [
+								"{{subgraph_base}}"
+							],
+							"path": [
+								"NetSepio"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get market items",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\r\n    marketItems(first:5,where:{forSale:true,deleted:false,sold:false}){\r\n        id,\r\n        itemId,\r\n        nftContract,\r\n        tokenId,\r\n        metaDataUri,\r\n    }\r\n}",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{subgraph_base}}/market-place-subgraph",
+							"host": [
+								"{{subgraph_base}}"
+							],
+							"path": [
+								"market-place-subgraph"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Feedback",
+			"item": [
+				{
+					"name": "Create feedback",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"feedback\":\"Very usefull\",\r\n    \"rating\":5\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/feedback",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"feedback"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Domain",
+			"item": [
+				{
+					"name": "Admin",
+					"item": [
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"admins\":[{\"adminName\":\"shachindra\",\"adminWalletAddress\":\"s\",\"adminRole\":\"wow\"}],\"domainId\":\"c5921c37-83db-4a2c-85f2-bffffbe26fc6\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/domain/admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"domain",
+										"admin"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"domainId\":\"6df72d0b-2e87-45b8-ab33-c995a4845d0d\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/domain/admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"domain",
+										"admin"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete admin",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"adminWalletAddress\":\"s\",\"domainId\":\"c5921c37-83db-4a2c-85f2-bffffbe26fc6\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/domain/admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"domain",
+										"admin"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Claim",
+					"item": [
+						{
+							"name": "Start claim",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"domainId\":\"f751f9c9-8216-4a3f-ab76-1245c0d304da\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/domain/claim/start",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"domain",
+										"claim",
+										"start"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Finish claim",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"domainId\": \"2042655a-e434-47ef-a688-aa54fce7beb8\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/domain/claim/finish",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"domain",
+										"claim",
+										"finish"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"domainName\": \"a.ommore.xyz\",\n    \"title\": \"todo appss\",\n    \"headline\": \"best todo app\",\n    \"description\": \"we make all softwares\",\n    \"coverImageHash\": \"abcd_hash_here\",\n    \"logohash\": \"cdba_logo_hash_here\",\n    \"category\": \"okaywepro\",\n    \"adminName\": \"om\",\n    \"adminRole\": \"proadmin\",\n    \"blockchain\": \"aptos-test\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/domain",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"domain"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"domainId\":\"febb1796-3876-4b46-8f8e-d4ce1735ef4f\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/domain/verify",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"domain",
+								"verify"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/domain?page=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"domain"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "verified",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "onlyAdmin",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "verifiedWithClaimable",
+									"value": "true",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/domain?domainId=94446a55-570d-4316-ab26-8e93b98a7600",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"domain"
+							],
+							"query": [
+								{
+									"key": "domainId",
+									"value": "94446a55-570d-4316-ab26-8e93b98a7600"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"domainId\": \"9d44d83a-e479-426b-b4e8-d23412df7b3d\",\n    \"title\": \"todo appss\",\n    \"headline\": \"best todo app\",\n    \"description\": \"we make all softwares\",\n    \"coverImageHash\": \"abcd_hash_here\",\n    \"logohash\": \"cdba_logo_hash_here\",\n    \"category\": \"okaywepro\",\n    \"blockchain\": \"aptos-test\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/domain",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"domain"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Account",
+			"item": [
+				{
+					"name": "Auth Google",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFmNDBmMGE4ZWYzZDg4MDk3OGRjODJmMjVjM2VjMzE3YzZhNWI3ODEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI2OTk5NTQ2NzE3NDctaTFtcWExZDdrM25oOGJvOWFydjU4cHE4ajRvc2w2NDIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI2OTk5NTQ2NzE3NDctYnFqMHJ2bjBxMjI5NnNrZXJkczZpbmR1bG9icnYxZnYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTU0MDg2ODIwNDY0Mjg3MjEyNjQiLCJlbWFpbCI6InNhaGlscjk2NjQ5QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiU2FoaWwgUiIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NJTUY5UGxubXAtRnV6YjlmWGNvYkhxOGYxbm00cWpiWGxuRjlkblNvbHg9czk2LWMiLCJnaXZlbl9uYW1lIjoiU2FoaWwiLCJmYW1pbHlfbmFtZSI6IlIiLCJsb2NhbGUiOiJlbi1HQiIsImlhdCI6MTcwNTU2NzU5NCwiZXhwIjoxNzA1NTcxMTk0fQ.B3lmkoyNc_bhhOX3wEE-WYfqEKr4jzEWXubRutWXsZ6JDoxMfNnzRXh1IYPjdRCPyHuOpnPC68r6xkEk3foOv-oXojcWbU7Ff_hUdjG2Voz8k_VbO5ro50VdAejdPOlsKyIjIiNB7aisKX_F5N5ASJe8dmNRpo_IOn9JllY64Vq8CJnSWIP8c9OsKZqdnKatfHjmkZWu_ZcCUqrWwJwDWqTgOJ7YFkCbV1prZeMAK5j1a-nXidbAByO_z-0HHKNY8NGBu5Nk5EJmoAYyhadgIC0HzRG7UCSTSm2jL_S62pJ0ro23TyIBe2-oVaRr5jF4fDeQU6_JZp8NSkZy_LxXmQ\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/account/auth-google",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"account",
+								"auth-google"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Report",
+			"item": [
+				{
+					"name": "Add Report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Innovative Max Urban Gardening Techniques\",\n    \"description\": \"This Max report explores innovative urban gardening techniques for sustainable city living.\",\n    \"document\": \"ipfs://exampledoc789\",\n    \"category\": \"Sustainability\",\n    \"tags\": [\"gardening\", \"urban\", \"sustainability\", \"innovation\",\"maxpro\"],\n    \"images\": [\n        \"ipfs://exampleimage123\",\n        \"ipfs://exampleimage456\"\n    ],\n    \"projectName\": \"UrbanGreen\",\n    \"projectDomain\": \"urbangreen.org\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/report",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"report"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get reports",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/report",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"report"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "urban",
+									"disabled": true
+								},
+								{
+									"key": "projectDomain",
+									"value": "urbangreen.org",
+									"disabled": true
+								},
+								{
+									"key": "projectName",
+									"value": "UrbanGreen",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Vote",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reportID\": \"2213764b-c70b-40ed-b5d4-e4397d8c1c4a\",\n    \"voteType\": \"upvote\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/report/vote",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"report",
+								"vote"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Site Insight",
+			"item": [
+				{
+					"name": "Get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/site-insight?siteUrl=https://netsepio.com",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"site-insight"
+							],
+							"query": [
+								{
+									"key": "siteUrl",
+									"value": "https://netsepio.com"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Plan [Not Available]",
+			"item": [
+				{
+					"name": "New plan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"priceId\":\"price_1ORcIbA56jIbQVxXtfoL538K\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/plan",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"plan"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel plan",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/plan",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"plan"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription",
+			"item": [
+				{
+					"name": "Create 111 NFT",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/subscription/erebrus",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscription",
+								"erebrus"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Add to Waitlist",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"emailId\":\"omoe023d@1gmail.com\",\n    \"walletAddress\":\"0x984185d39c67c954bd058beb619faf8929bb9349ef33c15102bdb982cbf7f18f\",\"discord\":\"wowe\",\n    \"twitter\":\"@devommore\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/waitlist",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"waitlist"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/status",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"status"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://gateway.netsepio.com/api/v1.0"
+		},
+		{
+			"key": "subgraph_base",
+			"value": "https://query.graph.lazarus.network/subgraphs/name",
+			"type": "string"
+		}
+	]
+}
