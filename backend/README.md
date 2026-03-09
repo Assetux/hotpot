@@ -41,7 +41,6 @@ Create a `.env` file (never commit it):
 HELIUS_API_KEY=your-helius-api-key
 RPC_URL=https://mainnet.helius-rpc.com/?api-key=your-helius-api-key
 TREASURY_WALLET=your-solana-wallet-address
-VPN_HOST=vpn.yourdomain.com
 PORT=3000
 ```
 

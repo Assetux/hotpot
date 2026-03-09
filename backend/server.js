@@ -4,7 +4,6 @@ const express      = require('express');
 const cors         = require('cors');
 const path         = require('path');
 const fs           = require('fs');
-const { exec }     = require('child_process');
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { v4: uuidv4 } = require('uuid');
 
@@ -86,56 +85,8 @@ function getDeviceDB(deviceId) {
   return db.devices[deviceId];
 }
 
-// ── VPN (Sing-Box) ────────────────────────────────────────────────────────────
-
-const SINGBOX_CONFIG_PATH = path.join(__dirname, 'vpn', 'sing-box', 'config.json');
-
-/**
- * Rebuilds the Sing-Box user list from the DB and restarts the container.
- * Called periodically to keep the running config in sync.
- */
-function syncSingBoxUsers() {
-  if (!fs.existsSync(SINGBOX_CONFIG_PATH)) return;
-  try {
-    const config = JSON.parse(fs.readFileSync(SINGBOX_CONFIG_PATH, 'utf-8'));
-
-    const hy2Inbound   = config.inbounds.find(i => i.type === 'hysteria2');
-    const vlessInbound = config.inbounds.find(i => i.type === 'vless');
-
-    const activeDevices = Object.entries(db.devices)
-      .filter(([, dev]) => dev.balance > 0 && dev.vpnCredential);
-
-    if (hy2Inbound) {
-      hy2Inbound.users = activeDevices.map(([id, dev]) => ({
-        name:     id,
-        password: dev.vpnCredential.password,
-      }));
-    }
-
-    if (vlessInbound) {
-      vlessInbound.users = activeDevices.map(([id, dev]) => ({
-        name: id,
-        uuid: dev.vpnCredential.uuid,
-        flow: 'xtls-rprx-vision',
-      }));
-    }
-
-    fs.writeFileSync(SINGBOX_CONFIG_PATH, JSON.stringify(config, null, 2));
-
-    exec('docker restart sing-box', (err) => {
-      if (err && !err.message.includes('No such container')) {
-        console.error('[VPN] Failed to restart Sing-Box:', err.message);
-      } else if (!err) {
-        console.log('[VPN] Sing-Box config synced and restarted.');
-      }
-    });
-  } catch (err) {
-    console.error('[VPN Sync]', err.message);
-  }
-}
-
-// Persist DB and sync VPN users every minute
-setInterval(() => { saveDB(db); syncSingBoxUsers(); }, 60_000);
+// Persist DB every minute
+setInterval(() => saveDB(db), 60_000);
 
 // ── Hotspot device registry (in-memory) ──────────────────────────────────────
 
@@ -330,42 +281,6 @@ app.post('/api/topup/verify', async (req, res) => {
     console.error('[TopUp]', err.message);
     res.status(500).json({ error: `Verification failed: ${err.message}` });
   }
-});
-
-// ── VPN credentials (Sing-Box) ────────────────────────────────────────────────
-
-app.post('/api/vpn/credentials', (req, res) => {
-  const { deviceId } = req.body;
-  if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
-
-  const dev = getDeviceDB(deviceId);
-  if (dev.balance <= 0) {
-    return res.status(402).json({
-      error: 'Insufficient ASX balance.',
-      balance: dev.balance,
-      treasuryWallet: TREASURY_WALLET,
-      asxMint: ASX_MINT,
-    });
-  }
-
-  if (!dev.vpnCredential) {
-    dev.vpnCredential = {
-      uuid:      uuidv4(),
-      password:  uuidv4().replace(/-/g, ''),
-      issuedAt:  new Date().toISOString(),
-    };
-    saveDB(db);
-    console.log(`[VPN] Issued credential for ${deviceId}`);
-  }
-
-  res.json({
-    success:    true,
-    credential: dev.vpnCredential,
-    balance:    dev.balance,
-    server:     process.env.VPN_HOST || 'vpn.hotpot.assetux.com',
-    port:       443,
-    protocol:   'hysteria2',
-  });
 });
 
 // ── VPN usage / disconnect ────────────────────────────────────────────────────
