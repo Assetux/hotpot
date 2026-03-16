@@ -7,14 +7,16 @@ const path         = require('path');
 const fs           = require('fs');
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { v4: uuidv4 } = require('uuid');
+const { lib, enc } = require("crypto-js");
+const { generateKeyPair } = require("curve25519-js");
+const crypto = require("crypto");
+
 
 dotenv.config()
 
 const app  = express();
 app.set('trust proxy', 1); // trust first proxy (nginx) so X-Forwarded-For is used for client IP
 const PORT = process.env.PORT || 3000;
-
-console.log(process.env)
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -59,6 +61,25 @@ async function fetchAsxRate() {
 async function getAsxPerGb() {
   const rate = await fetchAsxRate();
   return USD_PER_GB / rate; // e.g. $0.10 / $0.001 = 100 ASX/GB
+}
+
+function genKeys() {
+
+  // Generate preshared key (32 random bytes)
+  const preSharedKey = lib.WordArray.random(32);
+  const preSharedKeyB64 = preSharedKey.toString(enc.Base64);
+
+  // Generate Curve25519 keypair (WireGuard keys)
+  const keyPair = generateKeyPair(crypto.randomBytes(32));
+
+  const privKey = Buffer.from(keyPair.private).toString("base64");
+  const pubKey = Buffer.from(keyPair.public).toString("base64");
+
+  return {
+    presharedKey: preSharedKeyB64,
+    privateKey: privKey,
+    publicKey: pubKey
+  };
 }
 
 // Pre-warm rate cache on startup
@@ -484,10 +505,6 @@ app.get('/api/vpn/netsepio/flowid', async (req, res) => {
   }
 });
 
-/**
- * Step 2 — Authenticate with NetSepio and subscribe to Erebrus VPN.
- * Returns a WireGuard .conf string ready for use by the in-app VPN service.
- */
 app.post('/api/vpn/netsepio/connect', async (req, res) => {
   const { deviceId, flowId, signature, pubKey, walletAddress, message } = req.body;
   if (!deviceId || !flowId || !signature || !pubKey || !walletAddress || !message) {
@@ -498,7 +515,7 @@ app.post('/api/vpn/netsepio/connect', async (req, res) => {
   if (dev.balance <= 0) return res.status(402).json({ error: 'Insufficient ASX balance.' });
 
   try {
-    // Authenticate → receive a PASETO bearer token
+    // 1. Authenticate → receive a PASETO bearer token
     const authRes = await fetch(`${NETSEPIO_BASE}/authenticate?walletAddress=${walletAddress}&chain=sol`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -508,35 +525,71 @@ app.post('/api/vpn/netsepio/connect', async (req, res) => {
       const body = await authRes.json().catch(() => ({}));
       throw new Error(body.message || body.error || `NetSepio auth: ${authRes.status}`);
     }
-
     const authData = await authRes.json();
     const token    = authData.payload?.token || authData.token;
     if (!token) throw new Error('No token in NetSepio auth response');
 
-    // Store the token for future API calls
     dev.token = token;
     saveDB(db);
 
-    // Subscribe → receive Erebrus WireGuard credentials
-    const subRes  = await fetch(`${NETSEPIO_BASE}/subscription/trial?walletAddress=${walletAddress}&chain=sol`, {
+    // 2. Ensure subscription exists — response is just {"status":"subscription created"},
+    //    not WireGuard credentials, so we ignore it and treat errors as non-fatal
+    //    (subscription may already exist).
+    await fetch(`${NETSEPIO_BASE}/subscription/trial?walletAddress=${walletAddress}&chain=sol`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body:    JSON.stringify({ wallet: walletAddress }),
-    });
-    const subData = await subRes.json().catch(() => ({}));
+    }).catch(() => {});
 
-    const wgConfig = buildWireGuardConfig(subData);
-    if (!wgConfig) {
-      console.error('[NetSepio] Unrecognised Erebrus response:', JSON.stringify(subData).slice(0, 400));
-      throw new Error('Erebrus did not return WireGuard credentials.');
+    const keys = genKeys();
+
+    // 4. Create the Erebrus VPN client for the requested region
+    const clientRes = await fetch(`${NETSEPIO_BASE}/erebrus/client/12D3KooWNsh8WquPb21TF8Q39k6tEe35J3eeBmj32q1ssJKcWw3U`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body:    JSON.stringify({ name: `hotpot`, publicKey: keys.publicKey, presharedKey: keys.presharedKey }),
+    });
+    if (!clientRes.ok) {
+      const body = await clientRes.json().catch(() => ({}));
+      throw new Error(body.message || body.error || `Erebrus create client: ${clientRes.status}`);
     }
+    const clientData = await clientRes.json();
+    const p = clientData?.payload;
+    if (!p?.serverPublicKey || !p?.endpoint) {
+      console.error('[NetSepio] Unexpected Erebrus client response:', JSON.stringify(clientData).slice(0, 400));
+      throw new Error('Erebrus did not return server credentials after client creation.');
+    }
+
+    // 5. Build the complete WireGuard .conf
+    const addresses  = Array.isArray(p.client?.Address)
+      ? p.client.Address.join(', ')
+      : (p.client?.Address || '10.0.0.2/32');
+    const allowedIPs = Array.isArray(p.client?.AllowedIPs)
+      ? p.client.AllowedIPs.join(', ')
+      : '0.0.0.0/0, ::/0';
+    const endpoint   = String(p.endpoint).includes(':') ? p.endpoint : `${p.endpoint}:51820`;
+
+    const wgConfig = [
+      '[Interface]',
+      `PrivateKey = ${keys.privateKey}`,
+      `Address = ${addresses}`,
+      'DNS = 1.1.1.1',
+      '',
+      '[Peer]',
+      `PublicKey = ${p.serverPublicKey}`,
+      `PresharedKey = ${keys.presharedKey}`,
+      `AllowedIPs = ${allowedIPs}`,
+      `Endpoint = ${endpoint}`,
+      'PersistentKeepalive = 25',
+    ].join('\n');
 
     dev.wgConfig   = wgConfig;
     dev.wgConfigAt = new Date().toISOString();
+    dev.clientUUID = p.client?.UUID;
     saveDB(db);
 
-    console.log(`[NetSepio] WireGuard config issued for device ${deviceId}`);
-    res.json({ success: true, wgConfig, balance: dev.balance, protocol: 'wireguard' });
+    console.log(`[NetSepio] WireGuard config issued for device ${deviceId}, client ${p.client?.UUID}`);
+    res.json({ success: true, wgConfig, clientUUID: p.client?.UUID, balance: dev.balance, protocol: 'wireguard' });
   } catch (err) {
     console.error('[NetSepio Connect]', err.message);
     res.status(500).json({ error: err.message });
