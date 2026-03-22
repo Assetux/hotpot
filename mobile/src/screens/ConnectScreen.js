@@ -993,6 +993,14 @@ export default function ConnectScreen() {
               <Text style={styles.modalTitle}>Network Stats</Text>
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
+                  <Text style={styles.statEmoji}>🍜</Text>
+                  <Text style={styles.statValue}>soon</Text>
+                  <Text style={styles.statLabel}>HOTPOT Price</Text>
+                  <Text style={styles.statDetail}>per token</Text>
+                </View>
+              </View>
+              <View style={styles.statsRow}>
+                <View style={styles.statCard}>
                   <Text style={styles.statEmoji}>🪙</Text>
                   <Text style={styles.statValue}>${stats.asxPriceUsd?.toFixed(6) || '–'}</Text>
                   <Text style={styles.statLabel}>ASX Price</Text>
