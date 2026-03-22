@@ -975,8 +975,9 @@ export default function ConnectScreen() {
                   onChangeText={setTipAmount}
                 />
               </View>
-              <TouchableOpacity style={[styles.closeBtnPrimary, { backgroundColor: '#9945FF', marginTop: 0 }]} onPress={handleSendTip}>
-                <Text style={styles.closeBtnPrimaryText}>SEND TIP</Text>
+                                                                                  {/* onPress={handleSendTip} */}
+              <TouchableOpacity style={[styles.closeBtnPrimary, { backgroundColor: '#9945FF', marginTop: 0 }]}>
+                <Text style={styles.closeBtnPrimaryText}>TIP (soon)</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setTipModalNetwork(null)}>
                 <Text style={styles.closeBtnText}>CANCEL</Text>
