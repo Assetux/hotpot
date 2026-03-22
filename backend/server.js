@@ -573,6 +573,10 @@ app.post('/api/vpn/netsepio/connect', async (req, res) => {
       : '0.0.0.0/0, ::/0';
     const endpoint   = String(p.endpoint).includes(':') ? p.endpoint : `${p.endpoint}:51820`;
 
+    // Erebrus ignores the presharedKey we send and generates its own — use the one
+    // returned in the response so client and server share the same key.
+    const serverPresharedKey = p.client?.PresharedKey || keys.presharedKey;
+
     const wgConfig = [
       '[Interface]',
       `PrivateKey = ${keys.privateKey}`,
@@ -581,7 +585,7 @@ app.post('/api/vpn/netsepio/connect', async (req, res) => {
       '',
       '[Peer]',
       `PublicKey = ${p.serverPublicKey}`,
-      `PresharedKey = ${keys.presharedKey}`,
+      `PresharedKey = ${serverPresharedKey}`,
       `AllowedIPs = ${allowedIPs}`,
       `Endpoint = ${endpoint}`,
       'PersistentKeepalive = 25',
