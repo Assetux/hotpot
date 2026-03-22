@@ -782,52 +782,6 @@ app.delete('/api/vpn/netsepio/client/:uuid', async (req, res) => {
   }
 });
 
-/**
- * Parse an Erebrus subscription response into a WireGuard .conf string.
- *
- * Erebrus API versions return credentials in varying shapes:
- *   A) payload.WireGuardConfig  — complete .conf text
- *   B) payload.client_config    — complete .conf text
- *   C) payload with individual fields (PrivateKey, ServerPublicKey, …)
- *   D) payload.SubscriptionDetails with individual fields
- *
- * Returns null if the shape is unrecognised.
- */
-function buildWireGuardConfig(subData) {
-  const p = subData?.payload || subData;
-
-  // Complete .conf string already present
-  const fullConf = p?.WireGuardConfig || p?.wireguard_config || p?.client_config || p?.Config || p?.config;
-  if (typeof fullConf === 'string' && fullConf.includes('[Interface]')) return fullConf.trim();
-
-  // Individual credential fields
-  const d          = p?.SubscriptionDetails || p?.subscription_details || p;
-  const privateKey = d?.PrivateKey      || d?.private_key      || d?.ClientPrivateKey;
-  const publicKey  = d?.ServerPublicKey || d?.server_public_key || d?.PublicKey;
-  const endpoint   = d?.ServerEndpoint  || d?.server_endpoint   || d?.Endpoint;
-  const clientIp   = d?.ClientIPAddress || d?.client_ip_address || d?.Address;
-  const dns        = d?.DNSAddress      || d?.dns_address       || d?.DNS        || '1.1.1.1';
-  const allowedIPs = d?.AllowedIPs      || d?.allowed_ips       || '0.0.0.0/0, ::/0';
-  const psk        = d?.PresharedKey    || d?.preshared_key     || null;
-
-  if (!privateKey || !publicKey || !endpoint) return null;
-
-  const address = (clientIp || '').includes('/') ? clientIp : `${clientIp}/32`;
-  let conf = `[Interface]
-PrivateKey = ${privateKey}
-Address = ${address}
-DNS = ${dns}
-
-[Peer]
-PublicKey = ${publicKey}
-AllowedIPs = ${allowedIPs}
-Endpoint = ${endpoint}
-PersistentKeepalive = 25`;
-
-  if (psk) conf += `\nPresharedKey = ${psk}`;
-  return conf;
-}
-
 // ── Config file download ──────────────────────────────────────────────────────
 
 app.get('/api/config', (_req, res) => {
@@ -918,7 +872,6 @@ async function backupToPinata(hash) {
   const timestamp  = new Date().toISOString();
 
   // Pinata pinFileToIPFS via multipart/form-data
-  const FormData  = (await import('node:stream')).Readable; // use built-in FormData (Node 18+)
   const boundary  = `hotpot-backup-${Date.now()}`;
   const filename  = `db-${timestamp.replace(/[:.]/g, '-')}.json`;
   const body = Buffer.concat([
