@@ -33,7 +33,7 @@ import {
 } from '../services/api';
 import { useWallet } from '../utils/WalletContext';
 import {
-  connectVpn, disconnectVpn, onVpnStatusChange, getVpnTrafficStats,
+  connectVpn, disconnectVpn, onVpnStatusChange, getVpnTrafficStats, isVpnConnected,
 } from '../utils/VpnManager';
 
 const TREASURY_WALLET = '6bvB3PTz48wozyPJeuTB77axexWu9MfUSjBYbQzEgK88';
@@ -126,6 +126,8 @@ export default function ConnectScreen() {
   const [topupStep, setTopupStep] = useState('quote'); // 'quote' | 'verify'
 
   const [statsModalVisible, setStatsModalVisible] = useState(false);
+  const [tipModalNetwork, setTipModalNetwork] = useState(null);
+  const [tipAmount, setTipAmount] = useState('');
   const [networksModalVisible, setNetworksModalVisible] = useState(false);
   const [hotpotNetworks, setHotpotNetworks] = useState([]);
   const [allHotpotNetworks, setAllHotpotNetworks] = useState([]);
@@ -387,7 +389,7 @@ export default function ConnectScreen() {
     }
   };
 
-  const handleTipNetwork = async (network) => {
+  const handleTipNetwork = (network) => {
     if (!walletAddress) {
       Alert.alert('Wallet Required', 'Connect your Solana wallet to send a tip.');
       return;
@@ -400,24 +402,24 @@ export default function ConnectScreen() {
       Alert.alert('Cannot Tip Yourself', 'This is your own hotspot.');
       return;
     }
-    Alert.alert(
-      'Send Tip',
-      `Send 10,000 ASX to ${network.walletAddress.slice(0, 6)}...${network.walletAddress.slice(-4)}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send 10,000 ASX',
-          onPress: async () => {
-            try {
-              const sig = await sendASX(network.walletAddress, 10000);
-              Alert.alert('Tip Sent!', `Transaction confirmed.\n${sig.slice(0, 16)}...`);
-            } catch (e) {
-              Alert.alert('Tip Failed', e.message || 'Transaction rejected.');
-            }
-          },
-        },
-      ]
-    );
+    setTipAmount('');
+    setTipModalNetwork(network);
+  };
+
+  const handleSendTip = async () => {
+    const amount = parseFloat(tipAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Enter a valid ASX amount.');
+      return;
+    }
+    const network = tipModalNetwork;
+    setTipModalNetwork(null);
+    try {
+      const sig = await sendASX(network.walletAddress, amount);
+      Alert.alert('Tip Sent!', `Transaction confirmed.\n${sig.slice(0, 16)}...`);
+    } catch (e) {
+      Alert.alert('Tip Failed', e.message || 'Transaction rejected.');
+    }
   };
 
   const handleAddAllNetworks = async (networks) => {
@@ -437,6 +439,12 @@ export default function ConnectScreen() {
     setQrAllNetworks(networks);
     setQrAllIndex(0);
   };
+
+  // Sync vpnConnected with the actual native service state on mount.
+  // The service can survive an app restart (START_STICKY), so we must check.
+  useEffect(() => {
+    isVpnConnected().then(active => { if (active) setVpnConnected(true); });
+  }, []);
 
   // Subscribe to VPN status events from the native service.
   // Empty deps — subscribe once on mount so the listener is never torn down
@@ -503,6 +511,7 @@ export default function ConnectScreen() {
       if (!credData.success || !credData.wgConfig) {
         throw new Error('No WireGuard config returned from Erebrus.');
       }
+      console.log('[VPN] WireGuard config:\n', credData.wgConfig);
 
       // 4. Start in-app WireGuard tunnel.
       // connectVpn() awaits the native promise, which is resolved only after the
@@ -513,6 +522,17 @@ export default function ConnectScreen() {
       }
       // Belt-and-suspenders: set state here in case the JS event was missed
       // (e.g. rapid re-subscribe during VPN permission dialog lifecycle).
+      // Check handshake health: if rx is still 0 after 8 s the peer isn't responding.
+      setTimeout(async () => {
+        const s = await getVpnTrafficStats();
+        if (s.txBytes > 0 && s.rxBytes === 0) {
+          disconnectVpn();
+          Alert.alert(
+            'VPN Unreachable',
+            'Connected to the tunnel but the server is not responding.\n\nThe VPN server may be offline or its firewall is blocking UDP traffic.',
+          );
+        }
+      }, 8000);
       vpnDataGBRef.current   = 0;
       lastTotalGBRef.current = 0;
       setVpnConnected(true);
@@ -845,7 +865,7 @@ export default function ConnectScreen() {
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity style={styles.tipBtn} onPress={() => handleTipNetwork(net)}>
-                        <Text style={styles.tipBtnText}>🪙 Tip 10,000 ASX</Text>
+                        <Text style={styles.tipBtnText}>🪙 Send Tip</Text>
                       </TouchableOpacity>
                     </View>
                   ))
@@ -928,6 +948,37 @@ export default function ConnectScreen() {
                 )}
               </View>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setQrAllNetworks([])}>
+                <Text style={styles.closeBtnText}>CANCEL</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ── Tip Modal ── */}
+        <Modal visible={!!tipModalNetwork} transparent animationType="slide" onRequestClose={() => setTipModalNetwork(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>🪙 Send Tip</Text>
+              <Text style={styles.modalDesc}>
+                To: {tipModalNetwork?.walletAddress?.slice(0, 6)}...{tipModalNetwork?.walletAddress?.slice(-4)}
+              </Text>
+              <Text style={[styles.modalDesc, { color: '#9945FF', marginBottom: 8 }]}>
+                Your balance: {asxBalance.toFixed(2)} ASX
+              </Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.txInput}
+                  placeholder="Amount (ASX)"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  keyboardType="numeric"
+                  value={tipAmount}
+                  onChangeText={setTipAmount}
+                />
+              </View>
+              <TouchableOpacity style={[styles.closeBtnPrimary, { backgroundColor: '#9945FF', marginTop: 0 }]} onPress={handleSendTip}>
+                <Text style={styles.closeBtnPrimaryText}>SEND TIP</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setTipModalNetwork(null)}>
                 <Text style={styles.closeBtnText}>CANCEL</Text>
               </TouchableOpacity>
             </View>
