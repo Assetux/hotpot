@@ -140,6 +140,19 @@ function cleanExpiredDevices() {
 }
 setInterval(cleanExpiredDevices, 60_000);
 
+// ── Live location store (in-memory) ──────────────────────────────────────────
+
+const LIVE_TTL_MS  = 5 * 60 * 1000; // 5 min without update → remove
+const liveLocations = new Map();     // key: `${deviceId}:${ssid}`
+
+function cleanExpiredLiveLocations() {
+  const now = Date.now();
+  for (const [key, info] of liveLocations) {
+    if (now - info.updatedAt > LIVE_TTL_MS) liveLocations.delete(key);
+  }
+}
+setInterval(cleanExpiredLiveLocations, 60_000);
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST'] }));
@@ -440,6 +453,40 @@ app.post('/api/hotspot/settings', async (req, res) => {
   saveDB(db);
   console.log(`[Host] ${deviceId} in ${resolvedCountry || 'Unknown'}: ${networks.length} network(s)`);
   res.json({ success: true, settings: db.hostSettings[deviceId] });
+});
+
+// ── Live location broadcast ───────────────────────────────────────────────────
+
+app.post('/api/hotspot/live', (req, res) => {
+  const { deviceId, ssid, lat, lon, walletAddress } = req.body;
+  if (!deviceId || !ssid || typeof lat !== 'number' || typeof lon !== 'number') {
+    return res.status(400).json({ error: 'deviceId, ssid, lat, lon required' });
+  }
+  const key = `${deviceId}:${ssid}`;
+  liveLocations.set(key, { deviceId, ssid, lat, lon, walletAddress: walletAddress || null, updatedAt: Date.now() });
+  res.json({ success: true });
+});
+
+app.delete('/api/hotspot/live', (req, res) => {
+  const { deviceId, ssid } = req.body;
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
+  if (ssid) {
+    liveLocations.delete(`${deviceId}:${ssid}`);
+  } else {
+    for (const key of liveLocations.keys()) {
+      if (key.startsWith(`${deviceId}:`)) liveLocations.delete(key);
+    }
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/hotspot/live', (_req, res) => {
+  cleanExpiredLiveLocations();
+  const entries = [];
+  for (const info of liveLocations.values()) {
+    entries.push({ deviceId: info.deviceId, ssid: info.ssid, lat: info.lat, lon: info.lon, walletAddress: info.walletAddress });
+  }
+  res.json({ live: entries });
 });
 
 // ── Countries list ────────────────────────────────────────────────────────────
@@ -835,6 +882,18 @@ app.get('/api/config/json', (_req, res) => {
         lat:          typeof n.lat === 'number' ? n.lat : null,
         lon:          typeof n.lon === 'number' ? n.lon : null,
       });
+    }
+  }
+
+  // Override lat/lon with live positions where available
+  cleanExpiredLiveLocations();
+  for (const net of networks) {
+    if (!net.deviceId) continue;
+    const live = liveLocations.get(`${net.deviceId}:${net.ssid}`);
+    if (live) {
+      net.lat    = live.lat;
+      net.lon    = live.lon;
+      net.isLive = true;
     }
   }
 
