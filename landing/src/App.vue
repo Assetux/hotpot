@@ -10,6 +10,7 @@ const stats = ref({
   avgSpeed: '–',
   networkTreasuryASX: '0.00',
   asxPriceUsd: 0,
+  hotpotPriceUsd: 0,
 });
 const displayHotspots = ref(0);
 const displayCoverage = ref(0);
@@ -163,7 +164,7 @@ onUnmounted(() => {
         <div class="stat-cards">
           <div class="stat-card glass">
             <div class="stat-emoji">🍲</div>
-            <div class="stat-val">soon</div>
+            <div class="stat-val">${{ stats.hotpotPriceUsd?.toFixed(6) || '–' }}</div>
             <div class="stat-lbl">HOTPOT Price</div>
             <div class="stat-detail">per token</div>
           </div>

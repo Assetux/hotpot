@@ -21,7 +21,7 @@ import { updateHostSettings, updateLiveLocation, removeLiveLocation } from '../s
 import { useWallet } from '../utils/WalletContext';
 
 const TREASURY_WALLET = '6bvB3PTz48wozyPJeuTB77axexWu9MfUSjBYbQzEgK88';
-const PUBLISH_FEE_ASX = 100_000;
+const PUBLISH_FEE_HOTPOT = 100_000;
 
 function getDeviceId() {
   return (
@@ -291,7 +291,7 @@ function NetworkEntry({ index, network, onChange, onRemove, showRemove, deviceId
 // ── HostScreen ────────────────────────────────────────────────────────────────
 
 export default function HostScreen() {
-  const { walletAddress, connect, sendASX } = useWallet();
+  const { walletAddress, connect, sendHOTPOT } = useWallet();
   // Expose walletAddress for LocationPicker props (passed via NetworkEntry)
   const [networks, setNetworks] = useState([{
     ssid: '', password: '', encryption: 'WPA2',
@@ -332,7 +332,7 @@ export default function HostScreen() {
     }
     Alert.alert(
       'Confirm Publish',
-      `Publishing ${valid.length} network(s) costs ${PUBLISH_FEE_ASX.toLocaleString()} ASX.\n\nApprove the transaction to continue.`,
+      `Publishing ${valid.length} network(s) costs ${PUBLISH_FEE_HOTPOT.toLocaleString()} HOTPOT.\n\nApprove the transaction to continue.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -340,7 +340,7 @@ export default function HostScreen() {
           onPress: async () => {
             setUpdating(true);
             try {
-              await sendASX(TREASURY_WALLET, PUBLISH_FEE_ASX);
+              await sendHOTPOT(TREASURY_WALLET, PUBLISH_FEE_HOTPOT);
               // Use the country of the first valid network for legacy compat;
               // per-network country is stored inside the networks array.
               const primaryCountry = valid[0].country.trim();
@@ -426,7 +426,7 @@ export default function HostScreen() {
 
           <Text style={styles.hint}>
             Networks are visible to users in your country.{'\n'}
-            Earn ASX tokens when others use your connection.
+            Earn HOTPOT tokens when others use your connection.
           </Text>
         </ScrollView>
       </ImageBackground>

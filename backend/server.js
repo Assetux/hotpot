@@ -21,6 +21,7 @@ const PORT = process.env.PORT || 3000;
 // ── Configuration ─────────────────────────────────────────────────────────────
 
 const ASX_MINT       = 'cyaiYgJhfSuFY7yz8iNeBwsD1XNDzZXVBEGubuuxdma';
+const HOTPOT_MINT    = 'Yt9PdC1GssVbiCr2y7rWpXcJm28g1kcEAY8GrNgcyai';
 const TREASURY_WALLET = process.env.TREASURY_WALLET || '6bvB3PTz48wozyPJeuTB77axexWu9MfUSjBYbQzEgK88';
 const RPC_URL        = process.env.RPC_URL
   || (process.env.HELIUS_API_KEY && `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`)
@@ -30,14 +31,22 @@ const NETSEPIO_BASE  = 'https://gateway.netsepio.com/api/v1.0';
 // GeckoTerminal pool API for ASX/USD pricing
 const GECKO_POOL_URL = 'https://api.geckoterminal.com/api/v2/networks/solana/pools/HaiF1CsuuVCGGQ4syuDZqdtVz1ESyxjUiW9y3JK7Av55';
 
+// DexScreener for HOTPOT/USD pricing
+const DEXSCREENER_HOTPOT_URL = `https://api.dexscreener.com/latest/dex/tokens/${HOTPOT_MINT}`;
+
 // Pricing: 1 GB of VPN/hotspot data costs $0.10 USD worth of ASX
 const USD_PER_GB = 0.10;
 
 // ── ASX price cache ───────────────────────────────────────────────────────────
 
-let cachedAsxPriceUsd = 0.001; // conservative fallback
-let lastRateFetch     = 0;
-const RATE_CACHE_MS   = 60_000;
+let cachedAsxPriceUsd    = 0.001; // conservative fallback
+let lastRateFetch        = 0;
+const RATE_CACHE_MS      = 60_000;
+
+// ── HOTPOT price cache ────────────────────────────────────────────────────────
+
+let cachedHotpotPriceUsd = 0;
+let lastHotpotRateFetch  = 0;
 
 async function fetchAsxRate() {
   const now = Date.now();
@@ -63,7 +72,26 @@ async function getAsxPerGb() {
   return USD_PER_GB / rate; // e.g. $0.10 / $0.001 = 100 ASX/GB
 }
 
-getAsxPerGb()
+getAsxPerGb();
+
+async function fetchHotpotRate() {
+  const now = Date.now();
+  if (now - lastHotpotRateFetch < RATE_CACHE_MS) return cachedHotpotPriceUsd;
+  try {
+    const res  = await fetch(DEXSCREENER_HOTPOT_URL, { headers: { Accept: 'application/json' } });
+    const data = await res.json();
+    const pair = data?.pairs?.[0];
+    const price = parseFloat(pair?.priceUsd || 0);
+    if (price > 0) {
+      cachedHotpotPriceUsd = price;
+      lastHotpotRateFetch  = now;
+      console.log(`[Rate] HOTPOT price updated: $${price}`);
+    }
+  } catch (err) {
+    console.warn('[Rate] DexScreener HOTPOT fetch failed:', err.message);
+  }
+  return cachedHotpotPriceUsd;
+}
 
 function genKeys() {
 
@@ -84,9 +112,11 @@ function genKeys() {
   };
 }
 
-// Pre-warm rate cache on startup
+// Pre-warm rate caches on startup
 fetchAsxRate();
+fetchHotpotRate();
 setInterval(fetchAsxRate, RATE_CACHE_MS);
+setInterval(fetchHotpotRate, RATE_CACHE_MS);
 
 // ── Flat-file database ────────────────────────────────────────────────────────
 
@@ -199,7 +229,9 @@ function getStats() {
     networkTreasuryASX: db.networkTreasuryASX.toFixed(2),
     treasuryWallet:    TREASURY_WALLET,
     asxMint:           ASX_MINT,
+    hotpotMint:        HOTPOT_MINT,
     asxPriceUsd:       cachedAsxPriceUsd,
+    hotpotPriceUsd:    cachedHotpotPriceUsd,
     usdPerGb:          USD_PER_GB,
     lastUpdated:       new Date().toISOString(),
   };

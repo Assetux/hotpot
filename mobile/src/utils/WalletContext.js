@@ -15,7 +15,8 @@ import { Platform, Alert } from 'react-native';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const ASX_MINT   = 'cyaiYgJhfSuFY7yz8iNeBwsD1XNDzZXVBEGubuuxdma';
+export const ASX_MINT    = 'cyaiYgJhfSuFY7yz8iNeBwsD1XNDzZXVBEGubuuxdma';
+export const HOTPOT_MINT = 'Yt9PdC1GssVbiCr2y7rWpXcJm28g1kcEAY8GrNgcyai';
 const HELIUS_KEY        = process.env.EXPO_PUBLIC_HELIUS_API_KEY;
 export const SOLANA_RPC = HELIUS_KEY
   ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
@@ -130,14 +131,14 @@ export const WalletProvider = ({ children }) => {
     setAuthToken(null);
   };
 
-  // ── sendASX ───────────────────────────────────────────────────────────────────
+  // ── sendToken (internal) ──────────────────────────────────────────────────────
 
-  const sendASX = async (recipientAddress, amount) => {
+  const sendToken = async (mintAddress, recipientAddress, amount) => {
     if (!publicKey) throw new Error('Wallet not connected');
 
     const connection = new Connection(SOLANA_RPC, 'confirmed');
     const recipient  = new PublicKey(recipientAddress);
-    const mint       = new PublicKey(ASX_MINT);
+    const mint       = new PublicKey(mintAddress);
 
     const sourceATA = await findAssociatedTokenAddress(publicKey, mint);
     const destATA   = await findAssociatedTokenAddress(recipient, mint);
@@ -175,7 +176,7 @@ export const WalletProvider = ({ children }) => {
       return signature;
     }
 
-    // Native MWA
+    // Native MWA — sendToken
     return await transact(async (wallet) => {
       const reauth = await wallet.reauthorize({ auth_token: authToken, identity: APP_IDENTITY });
       setAuthToken(reauth.auth_token ?? authToken);
@@ -191,6 +192,9 @@ export const WalletProvider = ({ children }) => {
       return sig;
     });
   };
+
+  const sendASX    = (recipientAddress, amount) => sendToken(ASX_MINT,    recipientAddress, amount);
+  const sendHOTPOT = (recipientAddress, amount) => sendToken(HOTPOT_MINT, recipientAddress, amount);
 
   // ── signMessage ───────────────────────────────────────────────────────────────
 
@@ -235,7 +239,7 @@ export const WalletProvider = ({ children }) => {
   const walletAddress = publicKey?.toBase58() ?? null;
 
   return (
-    <WalletContext.Provider value={{ publicKey, walletAddress, balance, connect, disconnect, sendASX, signMessage }}>
+    <WalletContext.Provider value={{ publicKey, walletAddress, balance, connect, disconnect, sendASX, sendHOTPOT, signMessage }}>
       {children}
     </WalletContext.Provider>
   );

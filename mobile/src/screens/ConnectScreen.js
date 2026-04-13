@@ -87,7 +87,7 @@ function wifiQrValue(ssid, password, encryption) {
 }
 
 export default function ConnectScreen() {
-  const { walletAddress, connect, disconnect, sendASX, signMessage } = useWallet();
+  const { walletAddress, connect, disconnect, sendASX, sendHOTPOT, signMessage } = useWallet();
 
   const [stats, setStats] = useState({
     activeHotspots: 0,
@@ -95,6 +95,7 @@ export default function ConnectScreen() {
     avgSpeed: '–',
     treasuryWallet: TREASURY_WALLET,
     asxPriceUsd: 0,
+    hotpotPriceUsd: 0,
     usdPerGb: 0.1,
   });
   const [asxPerGb, setAsxPerGb] = useState(0);
@@ -453,13 +454,13 @@ export default function ConnectScreen() {
   const handleSendTip = async () => {
     const amount = parseFloat(tipAmount);
     if (!amount || amount <= 0) {
-      Alert.alert('Invalid Amount', 'Enter a valid ASX amount.');
+      Alert.alert('Invalid Amount', 'Enter a valid HOTPOT amount.');
       return;
     }
     const network = tipModalNetwork;
     setTipModalNetwork(null);
     try {
-      const sig = await sendASX(network.walletAddress, amount);
+      const sig = await sendHOTPOT(network.walletAddress, amount);
       Alert.alert('Tip Sent!', `Transaction confirmed.\n${sig.slice(0, 16)}...`);
     } catch (e) {
       Alert.alert('Tip Failed', e.message || 'Transaction rejected.');
@@ -1089,22 +1090,18 @@ export default function ConnectScreen() {
               <Text style={styles.modalDesc}>
                 To: {tipModalNetwork?.walletAddress?.slice(0, 6)}...{tipModalNetwork?.walletAddress?.slice(-4)}
               </Text>
-              <Text style={[styles.modalDesc, { color: '#9945FF', marginBottom: 8 }]}>
-                Your balance: {asxBalance.toFixed(2)} ASX
-              </Text>
               <View style={styles.inputRow}>
                 <TextInput
                   style={styles.txInput}
-                  placeholder="Amount (ASX)"
+                  placeholder="Amount (HOTPOT)"
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   keyboardType="numeric"
                   value={tipAmount}
                   onChangeText={setTipAmount}
                 />
               </View>
-                                                                                  {/* onPress={handleSendTip} */}
-              <TouchableOpacity style={[styles.closeBtnPrimary, { backgroundColor: '#9945FF', marginTop: 0 }]}>
-                <Text style={styles.closeBtnPrimaryText}>TIP (soon)</Text>
+              <TouchableOpacity style={[styles.closeBtnPrimary, { backgroundColor: '#9945FF', marginTop: 0 }]} onPress={handleSendTip}>
+                <Text style={styles.closeBtnPrimaryText}>SEND TIP</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setTipModalNetwork(null)}>
                 <Text style={styles.closeBtnText}>CANCEL</Text>
@@ -1120,8 +1117,8 @@ export default function ConnectScreen() {
               <Text style={styles.modalTitle}>Network Stats</Text>
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
-                  <Text style={styles.statEmoji}>🍜</Text>
-                  <Text style={styles.statValue}>soon</Text>
+                  <Text style={styles.statEmoji}>🍲</Text>
+                  <Text style={styles.statValue}>${stats.hotpotPriceUsd?.toFixed(6) || '–'}</Text>
                   <Text style={styles.statLabel}>HOTPOT Price</Text>
                   <Text style={styles.statDetail}>per token</Text>
                 </View>
